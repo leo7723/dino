@@ -1,9 +1,8 @@
 import 'dart:ui' as ui;
 
+import 'package:dino/game.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/material.dart';
-
-import 'dino.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
