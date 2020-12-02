@@ -16,10 +16,8 @@ import 'package:flame/gestures.dart';
 import 'package:flutter/material.dart';
 
 
-class MyGame extends BaseGame with TapDetector, HasWidgetsOverlay {
-
+class MyGame extends BaseGame with HasWidgetsOverlay, HasTapableComponents {
   double currentSpeed;
-
   GameBg gameBg;
   Horizon horizon;
   Cloud cloud;
@@ -29,21 +27,40 @@ class MyGame extends BaseGame with TapDetector, HasWidgetsOverlay {
   ui.Image spriteImage;
   bool isPlay = false;
   int score = 0;
+  var initial = false;
 
-  MyGame(this.spriteImage){
+  MyGame(this.spriteImage) {
     currentSpeed = GameConfig.minSpeed;
   }
 
-  Widget createButton({@required IconData icon, double right=0, double
-  bottom=0,
+  Widget createButton({@required IconData icon, double right = 0, double
+  bottom = 0,
     ValueChanged<bool>
-    onHighlightChanged}){
+    onHighlightChanged}) {
     return Positioned(
       right: right,
       bottom: bottom,
       child: MaterialButton(
         onHighlightChanged: onHighlightChanged,
-        onPressed: (){},
+        onPressed: () {
+          if (size == null) return;
+          if (!initial) {
+            initial = true;
+            dino = Dino(spriteImage, size);
+            scoreCom = Score(spriteImage, size);
+            horizon = Horizon(spriteImage, size);
+            cloud = Cloud(spriteImage, size);
+            obstacle = Obstacle(spriteImage, size);
+            this..add(horizon)..add(cloud)..add(obstacle)..add(dino)..add(scoreCom);
+          }
+          if (isPlay == false) {
+            isPlay = true;
+            currentSpeed = GameConfig.minSpeed;
+            score = 0;
+            obstacle.clear();
+            dino.startPlay();
+          }
+        },
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         child: Container(
@@ -62,88 +79,51 @@ class MyGame extends BaseGame with TapDetector, HasWidgetsOverlay {
     );
   }
 
-  void debugHit(ui.Image img1, ui.Image img2){
-    addWidgetOverlay('a1', Positioned(
-      right: 100,
-      top: 0,
-      child: Container(
-        width: 100,
-        height: 100,
-        color: Colors.blueGrey,
-        child: RawImage(image: img1,fit: BoxFit.fill),
-      ),
-    ));
+  void debugHit(ui.Image img1, ui.Image img2) {
 
-    addWidgetOverlay('a2', Positioned(
-      right: 0,
-      top: 0,
-      child: Container(
-        width: 100,
-        height: 100,
-        color: Colors.brown,
-        child: RawImage(image: img2,fit: BoxFit.fill),
-      ),
-    ));
-  }
-
-  void onTap(){
-    if(size == null)return;
-    if(components.isEmpty){
-      gameBg = GameBg();
-      horizon = Horizon(spriteImage, size);
-      cloud = Cloud(spriteImage, size);
-      obstacle = Obstacle(spriteImage, size);
-      dino = Dino(spriteImage, size);
-      scoreCom = Score(spriteImage, size);
-      this
-        ..add(gameBg)..add(horizon)..add(cloud)..add(dino)..add(obstacle)
-        ..add(scoreCom)
-        ..addWidgetOverlay('upButton', createButton(
-          icon: Icons.arrow_drop_up,
-          right: 50,
-          bottom: 120,
-          onHighlightChanged: (isOn)=>dino?.jump(isOn),
-        ))
-        ..addWidgetOverlay('downButton', createButton(
-          icon: Icons.arrow_drop_down,
-          right: 50,
-          bottom: 50,
-          onHighlightChanged: (isOn)=>dino?.down(isOn),
-        ));
-    }
-    if(!isPlay){
-      isPlay = true;
-      currentSpeed = GameConfig.minSpeed;
-      score = 0;
-      obstacle.clear();
-      dino.startPlay();
-    }
   }
 
   @override
   void update(double t) async {
-    if(size == null)return;
-    if(isPlay){
+    if (size == null) return;
+    if (components.isEmpty) {
+      gameBg = GameBg();
+      this
+        ..add(gameBg)
+        ..addWidgetOverlay('upButton', createButton(
+          icon: Icons.arrow_drop_up,
+          right: 50,
+          bottom: 120,
+          onHighlightChanged: (isOn) => dino?.jump(isOn),
+        ))..addWidgetOverlay('downButton', createButton(
+        icon: Icons.arrow_drop_down,
+        right: 50,
+        bottom: 50,
+        onHighlightChanged: (isOn) => dino?.down(isOn),
+      ));
+    }
+
+    if (isPlay) {
       horizon.updateWithSpeed(t, currentSpeed);
       obstacle.updateWithSpeed(t, currentSpeed);
       cloud.updateWithSpeed(t, currentSpeed);
       dino.updateWithSpeed(t, currentSpeed);
       score++;
       scoreCom.updateWithScore(score);
-      if(currentSpeed <= GameConfig.maxSpeed){
+      if (currentSpeed <= GameConfig.maxSpeed) {
         currentSpeed += GameConfig.acceleration;
       }
-      if(await obstacle.hitTest(dino.actualDino, this.debugHit)){
+      if (await obstacle.hitTest(dino.actualDino, this.debugHit)) {
         dino.die();
         isPlay = false;
       }
     }
   }
-
 }
 
 class GameBg extends Component with Resizable {
   Color bgColor;
+
   GameBg([this.bgColor = Colors.white]);
 
   @override
